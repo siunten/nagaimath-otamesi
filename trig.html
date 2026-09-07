@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>三角関数の変化 | Math Lab</title>
+  <meta name="description" content="三角関数の平行移動、振幅、周期の変化を操作して学ぶ教材です。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html">Math Lab</a>
+      <nav class="nav" aria-label="メインナビゲーション">
+        <a href="trig.html">三角関数</a>
+        <a href="solid.html">回転体</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-title">
+      <span class="badge">数学II</span>
+      <h1>三角関数のグラフを動かしてみる</h1>
+      <p>基準の y = sin x と比べながら、平行移動・周期・振幅の変化を観察します。</p>
+    </section>
+
+    <div class="lab-grid">
+      <section class="panel visual-panel">
+        <div class="formula" id="formula" aria-live="polite"></div>
+        <svg id="graph" viewBox="0 0 760 420" role="img" aria-label="三角関数のグラフ">
+          <g id="grid"></g>
+          <path id="baseCurve" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="8 7"></path>
+          <path id="mainCurve" fill="none" stroke="var(--curve)" stroke-width="4"></path>
+        </svg>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-line dashed"></span>基準 y = sin x</span>
+          <span class="legend-item"><span class="legend-line"></span>変化後</span>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="操作パネル">
+        <div class="control-group">
+          <div class="control-row"><label for="amp">振幅 A</label><strong id="ampValue"></strong></div>
+          <input id="amp" type="range" min="0.5" max="3" step="0.25" value="1">
+        </div>
+
+        <div class="control-group">
+          <div class="control-row"><label for="period">周期 T</label><strong id="periodValue"></strong></div>
+          <input id="period" type="range" min="1.5708" max="12.5664" step="0.15708" value="6.2832">
+        </div>
+
+        <div class="control-group">
+          <div class="control-row"><label for="horizontal">横方向の移動 h</label><strong id="horizontalValue"></strong></div>
+          <input id="horizontal" type="range" min="-6.2832" max="6.2832" step="0.15708" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-row"><label for="vertical">上下方向の移動 k</label><strong id="verticalValue"></strong></div>
+          <input id="vertical" type="range" min="-2" max="2" step="0.25" value="0">
+        </div>
+
+        <div class="note" id="observation" aria-live="polite"></div>
+
+        <div class="button-row" style="margin-top:16px">
+          <button class="primary" id="resetButton" type="button">元に戻す</button>
+          <button id="exampleButton" type="button">例：y = sin 2x</button>
+        </div>
+      </aside>
+    </div>
+
+    <section class="panel lesson-box">
+      <h2>授業で使える発問例</h2>
+      <ol>
+        <li>周期 T を半分にすると、グラフは横に広がる？縮む？</li>
+        <li>h を正にすると、なぜグラフは右へ動くのか。</li>
+        <li>A を負にしたらどうなるか。次の版で追加しても面白いポイントです。</li>
+      </ol>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const svg = document.getElementById('graph');
+  const grid = document.getElementById('grid');
+  const baseCurve = document.getElementById('baseCurve');
+  const mainCurve = document.getElementById('mainCurve');
+  const formula = document.getElementById('formula');
+  const observation = document.getElementById('observation');
+
+  const amp = document.getElementById('amp');
+  const period = document.getElementById('period');
+  const horizontal = document.getElementById('horizontal');
+  const vertical = document.getElementById('vertical');
+
+  const ampValue = document.getElementById('ampValue');
+  const periodValue = document.getElementById('periodValue');
+  const horizontalValue = document.getElementById('horizontalValue');
+  const verticalValue = document.getElementById('verticalValue');
+
+  const W = 760, H = 420;
+  const xMin = -2 * Math.PI, xMax = 2 * Math.PI;
+  const yMin = -3.5, yMax = 3.5;
+  const sx = x => W * (x - xMin) / (xMax - xMin);
+  const sy = y => H - H * (y - yMin) / (yMax - yMin);
+
+  function piLabel(value) {
+    const q = value / Math.PI;
+    const near = (a, b) => Math.abs(a - b) < 0.035;
+    if (near(q, 0)) return '0';
+    if (near(q, 2)) return '2π';
+    if (near(q, -2)) return '-2π';
+    if (near(q, 1)) return 'π';
+    if (near(q, -1)) return '-π';
+    if (near(q, .5)) return 'π/2';
+    if (near(q, -.5)) return '-π/2';
+    if (near(q, 1.5)) return '3π/2';
+    if (near(q, -1.5)) return '-3π/2';
+    return q.toFixed(2) + 'π';
+  }
+
+  function buildGrid() {
+    let html = '';
+    for (let n = -4; n <= 4; n++) {
+      const x = n * Math.PI / 2;
+      html += `<line x1="${sx(x)}" y1="0" x2="${sx(x)}" y2="${H}" stroke="var(--grid)" stroke-width="1" />`;
+      if (n !== 0) html += `<text x="${sx(x)}" y="${sy(0)+20}" text-anchor="middle" font-size="12" fill="var(--muted)">${piLabel(x)}</text>`;
+    }
+    for (let y = -3; y <= 3; y++) {
+      html += `<line x1="0" y1="${sy(y)}" x2="${W}" y2="${sy(y)}" stroke="var(--grid)" stroke-width="1" />`;
+      if (y !== 0) html += `<text x="${sx(0)+7}" y="${sy(y)-5}" font-size="12" fill="var(--muted)">${y}</text>`;
+    }
+    html += `<line x1="0" y1="${sy(0)}" x2="${W}" y2="${sy(0)}" stroke="var(--muted)" stroke-width="1.5" />`;
+    html += `<line x1="${sx(0)}" y1="0" x2="${sx(0)}" y2="${H}" stroke="var(--muted)" stroke-width="1.5" />`;
+    grid.innerHTML = html;
+  }
+
+  function pathFor(fn) {
+    let d = '';
+    for (let i = 0; i <= 900; i++) {
+      const x = xMin + (xMax - xMin) * i / 900;
+      d += `${i === 0 ? 'M' : 'L'}${sx(x).toFixed(2)} ${sy(fn(x)).toFixed(2)} `;
+    }
+    return d;
+  }
+
+  function draw() {
+    const A = Number(amp.value);
+    const T = Number(period.value);
+    const h = Number(horizontal.value);
+    const k = Number(vertical.value);
+    const omega = 2 * Math.PI / T;
+
+    baseCurve.setAttribute('d', pathFor(x => Math.sin(x)));
+    mainCurve.setAttribute('d', pathFor(x => A * Math.sin(omega * (x - h)) + k));
+
+    ampValue.textContent = A.toFixed(2);
+    periodValue.textContent = piLabel(T);
+    horizontalValue.textContent = piLabel(h);
+    verticalValue.textContent = k.toFixed(2);
+
+    const signK = k >= 0 ? '+' : '−';
+    formula.textContent = `y = ${A.toFixed(2)} sin((2π/${piLabel(T)})(x − ${piLabel(h)})) ${signK} ${Math.abs(k).toFixed(2)}`;
+
+    const direction = h > 0.03 ? '右' : h < -0.03 ? '左' : '横方向には移動していません';
+    const verticalText = k > 0.03 ? `上に ${Math.abs(k).toFixed(2)}` : k < -0.03 ? `下に ${Math.abs(k).toFixed(2)}` : '上下方向には移動していません';
+    observation.innerHTML = `<p><strong>観察：</strong> 周期は ${piLabel(T)}、振幅は ${A.toFixed(2)}。横方向は ${Math.abs(h) < .03 ? direction : `${direction}へ ${piLabel(Math.abs(h))}`}、${verticalText}。</p>`;
+  }
+
+  function reset() {
+    amp.value = 1;
+    period.value = 2 * Math.PI;
+    horizontal.value = 0;
+    vertical.value = 0;
+    draw();
+  }
+
+  [amp, period, horizontal, vertical].forEach(el => el.addEventListener('input', draw));
+  document.getElementById('resetButton').addEventListener('click', reset);
+  document.getElementById('exampleButton').addEventListener('click', () => {
+    amp.value = 1;
+    period.value = Math.PI;
+    horizontal.value = 0;
+    vertical.value = 0;
+    draw();
+  });
+
+  buildGrid();
+  reset();
+})();
+</script>
+</body>
+</html>
